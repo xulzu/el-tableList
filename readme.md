@@ -12,12 +12,14 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## 显示效果
+## 简介
+> 基于element-table封装，把分页组件一起封装。使用本地缓存支持自定义需要显示的列以及调整列显示顺序 。和原来的element-table用法一模一样。经测试能在写中后台业务时极大提升开发速度
+
 ![333FA342-5274-44BA-9A7C-EBE99566AF4F.png](https://i.loli.net/2021/11/04/3D8lPdZ9CpGogBy.jpg)
 ![2944191A-C295-4FCC-9B81-8ECC097EC226.png](https://i.loli.net/2021/11/04/zJsCvmXSoH2QgkD.jpg)
 
 
-## 重要数据或者方法
+## 4个重要数据或者方法
 
 ```js
 const tableData = [{ val: 1 }];//数据源
