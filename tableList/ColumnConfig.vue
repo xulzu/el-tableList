@@ -30,8 +30,6 @@
           @click="reset"
         >重置配置</el-button
         >
-        <el-input type="textarea" @input="testHnadle" v-model="test"></el-input>
-
         <div style="margin: 15px 0"></div>
         <el-checkbox-group
           v-model="checkboxSelect"
@@ -151,16 +149,6 @@ export default {
     this.opened();
   },
   methods: {
-    testHnadle(val) {
-      console.log(
-        val
-          .replace(/\"/g, '\\"')
-          .replace(/\t/g, '\\t')
-          .split(/\n/)
-          .map((item) => '"' + item + '"')
-          .join(',')
-      );
-    },
     handleCheckAllChange(val) {
       this.checkboxSelect = val
         ? this.__column.map((item) => item.columnUUkey)
