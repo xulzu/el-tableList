@@ -4,7 +4,6 @@
     title="拖动节点进行排序"
     :visible.sync="dialogVisible"
     width="500px"
-    @close='close'
     append-to-body
   >
     <el-tree
@@ -34,14 +33,14 @@ export default {
   data() {
     return {
       data: [],
-      dialogVisible: true,
+      dialogVisible: false,
     };
   },
   created() {
-    this.opened();
   },
   methods: {
-    opened() {
+    open() {
+      this.dialogVisible = true;
       this.data = this.column.map((item) => {
         return {
           columnUUkey: item.columnUUkey,
@@ -50,6 +49,7 @@ export default {
       });
     },
     close() {
+      this.dialogVisible = false;
       this.$emit(
         'close',
         this.data.map((item) => item.columnUUkey)

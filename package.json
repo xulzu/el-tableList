@@ -1,0 +1,30 @@
+{
+  "name": "@qcsfe/table-list",
+  "version": "0.1.1",
+  "main": "lib/table.common.js",
+  "description": "一个基于element-ui封装的table组件，将分页，数据加载等常见业务逻辑进行的包装",
+  "scripts": {
+    "serve": "vue-cli-service serve ./demo/index.js",
+    "build": "vue-cli-service build --target lib --dest lib --name table ./module/index.vue",
+    "build-watch": "vue-cli-service build --watch  --target lib --dest lib --name table ./module/index.vue "
+
+  },
+  "dependencies": {
+    "core-js": "^3.6.5",
+    "element-ui": "^2.15.10",
+    "vue": "^2.6.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": "MIT",
+  "author": "xufujun",
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~4.5.13",
+    "@vue/cli-service": "~4.5.13",
+    "node-sass": "^4.12.0",
+    "sass-loader": "^8.0.2",
+    "vue-template-compiler": "^2.6.11"
+  }
+}

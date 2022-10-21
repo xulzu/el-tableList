@@ -63,13 +63,11 @@ loadData:当切换分页组件或者排序这些需要查询参数时就需要�
           @click="dialogVisible = true"
         ></i>
       </span>
-      
     </div>
 
     <el-table
       v-bind="$attrs"
       v-on="$listeners"
-      border
       ref="table"
       :data="showData"
       :stripe="stripe"
@@ -90,33 +88,43 @@ loadData:当切换分页组件或者排序这些需要查询参数时就需要�
         fixed="left"
       >
       </el-table-column>
-      <template v-for="(item, index) in showColumn">
+      <template v-for="(item,idx) in showColumn">
         <el-table-column
-          :key="index"
-          :prop="item.prop"
-          :label="item.label"
-          :width="item.width"
-          :min-width="item['min-width']"
-          :fixed="item.fixed"
-          :formatter="item.formatter"
-          :show-overflow-tooltip="item['show-overflow-tooltip'] || false"
-          :sortable="item.sortable"
-          :sort-method="item['sort-method']"
-          :sort-by="item['sort-by']"
-          :align="item.align || 'center'"
-          :sort-orders="item['sort-orders']"
-          :class-name="item['class-name']"
+          :key="idx"
+          :prop="item && item.prop"
+          :label="item && item.label"
+          :width="item && item.width"
+          :min-width="item && item['min-width']"
+          :fixed="item && item.fixed"
+          :formatter="item && item.formatter"
+          :show-overflow-tooltip="
+            (item && item['show-overflow-tooltip']) || false
+          "
+          :sortable="item && item.sortable"
+          :sort-method="item && item['sort-method']"
+          :sort-by="item && item['sort-by']"
+          :align="(item && item.align) || 'center'"
+          :sort-orders="item && item['sort-orders']"
+          :class-name="item && item['class-name']"
         >
-          <template v-if="item.slotHeader" v-slot:header="{ row }">
-            <slot :name="item.slotHeader" :row="row" :$index="index"></slot>
+          <template v-if="item && item.slotHeader" v-slot:header="scoped">
+            <slot
+              :name="item && item.slotHeader"
+              :row="scoped.row"
+              :$index="scoped.$index"
+            ></slot>
           </template>
-          <template v-if="item.slot" v-slot="{ row }">
-            <slot :name="item.slot" :row="row" :$index="index"></slot>
+          <template v-if="item && item.slot" v-slot="scoped">
+            <slot
+              :name="item && item.slot"
+              :row="scoped.row"
+              :$index="scoped.$index"
+            ></slot>
           </template>
         </el-table-column>
       </template>
     </el-table>
-    <div :style="paginationStyle">
+    <div :style="paginationStyle" v-if="needPagination">
       <el-pagination
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
@@ -128,8 +136,9 @@ loadData:当切换分页组件或者排序这些需要查询参数时就需要�
       >
       </el-pagination>
     </div>
+   
     <ColumnConfig
-      :columns="columns"
+      :columns="filterColumns"
       :visible.sync="dialogVisible"
       :_uuEditKey="_uuEditKey"
       :selectColumn.sync="selectedColumn"
@@ -153,7 +162,6 @@ export default {
     },
     pagination: {
       type: Object,
-      required: true,
       default: () => {
         return {
           pageIndex: 1,
@@ -163,6 +171,15 @@ export default {
           layout: 'total, sizes, prev, pager, next',
         };
       },
+    },
+    //开启本地分页
+    localPaginate: {
+      type: Boolean,
+      default: false,
+    },
+    needPagination: {
+      type: Boolean,
+      default: true,
     },
     columns: {
       required: true,
@@ -183,14 +200,19 @@ export default {
         return () => {};
       },
     },
+    //控制能够勾选的最大数量，同理能够用来实现单选
+    selectCountLimit: {
+      type: Number,
+      default: 1000000,
+    },
     checkedData: {
       type: Array,
       default: () => [],
     },
     // 主要作用是用来本地缓存某一个表个实例的配置。如需要显示哪些列
     _uuEditKey: {
-      type: String,
-      default: '',
+      type: [String,Boolean],
+      default: false,
     },
     _isRefresh: {
       type: Boolean,
@@ -212,21 +234,35 @@ export default {
           this.pagination.align === 'left' ? 'flex-start' : 'flex-end',
       };
     },
-    
+    // 根据columns中的hidden字段控制某一列筛选出那些列默认情况应该展示
+    filterColumns() {
+      return this.columns.filter(item => {
+        if (item.hidden && typeof item.hidden === 'function') return !item.hidden();
+        return !item.hidden;
+      });
+    },
+
+    //再更具用户点击小齿轮的选项二次筛选出应该具体显示哪些列
     showColumn() {
-      if (!this.selectedColumn.length) {
-        return this.columns;
-      } else {
+      let data = this.filterColumns;
+      if (this.selectedColumn.length) {
         // selectedColumn: ['id','name']这种形式
-        return this.selectedColumn.map((item) => {
-          return this.columns.find(
+        data = this.selectedColumn.map((item) => {
+          return this.filterColumns.find(
             (each) => each.prop === item || each.slot === item
           );
-        });
+        })
+          .filter(item => !!item)
+        ;
       }
+      return data.map(item => ({
+        ...item,
+        columnUUkey: item.prop || item.slot
+      }));
     },
     showData() {
       if (!this.data || !this.data.length) return [];
+      if (!this.needPagination) return this.data;
       const left = Math.max(
         this.pagination.pageSize * (this.pagination.pageIndex - 1),
         0
@@ -254,9 +290,18 @@ export default {
     };
   },
   watch: {
-    data(newVal, oldVal) {
-      this.resetSelect();
+    data: {
+      handler(newVal, oldVal) {
+        this.resetSelect();
+        if (this.localPaginate) {
+          this.pagination.total = this.data && this.data.length || 0;
+        }
+      },
+      immediate: true,
     },
+    filterColumns() {
+      this.selectedColumn = [];
+    }
   },
   mounted() {
     this.resetSelect(); //满足有默认选择项的情况
@@ -271,7 +316,17 @@ export default {
       this.$emit('loadData');
     },
     selectionChange(selection, row) {
-      this._checkedData = selection;
+      if (selection && selection.length > this.selectCountLimit) {
+        this.$refs.table.clearSelection();
+        for (let i = 0; i < this.selectCountLimit; i++) {
+          this.$refs.table.toggleRowSelection(
+            selection[selection.length - i - 1],
+            true
+          );
+        }
+      } else {
+        this._checkedData = selection;
+      }
     },
     //当表格中的数据变动时，需要重新确定哪些行需要选择
     resetSelect() {
@@ -290,7 +345,7 @@ export default {
       this.loadData();
     },
     handleCurrentChange() {
-      this.loadData();
+      !this.localPaginate && this.loadData();
     },
   },
 };
@@ -311,7 +366,7 @@ export default {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  i+i{
+  i + i {
     margin-left: 4px;
   }
 }
